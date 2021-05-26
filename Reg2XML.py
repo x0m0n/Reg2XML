@@ -1,11 +1,31 @@
+#Tool to make .reg file into .xml file for importing into GPO.
+#Made by a sysadmin, for sysadmins. Use at will. Credits when credit is due. Suggestions are welcomed.
+"""
+Usage:
+Reg2XML inputfile.reg CollectionName
+"""
+
 import xml.etree.cElementTree as ET
 import os.path
 import io
 import re
 from configparser import ConfigParser
 import xml.dom.minidom
+import sys
 
-RegFile = "InputMethods.reg"
+if(len(sys.argv) is 1){
+    print("Usage:\nReg2XML inputfile.reg CollectionName")
+}
+
+ArgList = list(sys.argv)
+
+#Help info section
+if (ArgList[-1] is "/?"){
+    print("Usage:\nReg2XML inputfile.reg CollectionName")
+    return
+}
+if ()
+RegFile = str(ArgList[1])
 XMLFile = RegFile.strip(".reg")+".xml"
 CollectionName='Language|Chinese|Japanese'
 
