@@ -5,6 +5,7 @@ Usage:
 Reg2XML inputfile.reg CollectionName
 """
 
+from xml.etree.ElementTree import XML
 import xml.etree.cElementTree as ET
 import os.path
 import io
@@ -12,22 +13,29 @@ import re
 from configparser import ConfigParser
 import xml.dom.minidom
 import sys
+import argparse
 
-if(len(sys.argv) is 1){
-    print("Usage:\nReg2XML inputfile.reg CollectionName")
-}
-
-ArgList = list(sys.argv)
+parser=argparse.ArgumentParser(add_help=True,allow_abbrev=True)
+parser.add_argument('regfile',help='Enter the full path to file with .reg at the end')
+parser.add_argument('collectionname',help='Enter the collection name for GPO''s name, no space please.')
+parser.add_argument('--debugMode',action='store_true')
+ArgList=parser.parse_args()
 
 #Help info section
-if (ArgList[-1] is "/?"){
-    print("Usage:\nReg2XML inputfile.reg CollectionName")
-    return
-}
-if ()
-RegFile = str(ArgList[1])
-XMLFile = RegFile.strip(".reg")+".xml"
-CollectionName='Language|Chinese|Japanese'
+
+RegFile = ArgList.regfile
+
+if(not(os.path.isfile(RegFile))):
+    print("Can't find",RegFile,". Quitting...")
+    quit()
+
+XMLFile = RegFile.strip("reg")+"xml"
+CollectionName=ArgList.collectionname
+
+GlobalDebug=ArgList.debugMode
+
+if (GlobalDebug):
+    print("RegFile is",RegFile,", XMLFile is",XMLFile,",CollectionName is",CollectionName)
 
 TypeDict={'binary':"REG_BINARY",
           'dword':"REG_DWORD",
@@ -44,9 +52,6 @@ TypeDict={'binary':"REG_BINARY",
 clsid={'entries':'{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}',
        'collections':'{53B533F5-224C-47e3-B01B-CA3B3F3FF4BF}',
        'settings':'{A3CCFC41-DFDB-43a5-8D26-0FE8B954DA51}'}
-
-
-GlobalDebug=False
 
 class RegData:
     """Creates the registry data. Each hive key is an object and the values are part of values array"""
@@ -98,7 +103,7 @@ class RegData:
     def getHives(self):
         return self.hives
 
-def read_reg_simple(filename,encoding='utf-16'):
+def read_reg_simple(filename,encoding='utf-8'):
     with io.open(filename,encoding=encoding) as f:
         data=f.read()
         # get rid of non-section strings in the beginning of .reg file
@@ -122,10 +127,11 @@ def read_reg_simple(filename,encoding='utf-16'):
                 keys[-1].appendValue(name,temp[1])
             if not('=' in item):
                 keys[-1].appendValue(name,item)
-    for item in keys:
-        print(item.getHives())
-        for name in item.getNames():
-            print(name,'=',item.getValues(name),", type=",TypeDict[name[1]])
+    if (GlobalDebug):
+        for item in keys:
+            print(item.getHives())
+            for name in item.getNames():
+                print(name,'=',item.getValues(name),", type=",TypeDict[name[1]])
 
     root=ET.Element('RegistrySettings',{'clsid':clsid['settings'],'disabled':'0'})
     Collection=ET.SubElement(root,'Collection',{'clsid':clsid['collections'],'name':CollectionName})
@@ -136,10 +142,17 @@ def read_reg_simple(filename,encoding='utf-16'):
             value=item.getValues(name)
             Registry = ET.SubElement(Collection,'Registry',{'clsid':clsid['entries'],'image':'12','name':name[0]})
             Properties = ET.SubElement(Registry,'Properties',{'action':'U','hive':hive[0],'key':'\\'.join(hive[1:]),'name':name[0],'type':TypeDict[name[1]],'value':value})
-
-    prettyStr=xml.dom.minidom.parseString(ET.tostring(root,'utf-8')).toprettyxml()
+    if(GlobalDebug):
+        print("finalizing pretty string")
+    prettyStr=xml.dom.minidom.parseString(ET.tostring(root,encoding)).toprettyxml()
+    if(GlobalDebug):
+        print("Turning it into ET")
     Tree=ET.ElementTree(ET.fromstring(prettyStr))
-    Tree.write(XMLFile)
+    try:
+        print("Writing to",XMLFile)
+        Tree.write(XMLFile)
+    except IOError:
+        sys.exit("Unable to write to file",XMLFile)
 
 def read_reg(filename,encoding='utf-16'):
     with io.open(filename,encoding=encoding) as f:
