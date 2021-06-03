@@ -56,17 +56,17 @@ clsid={'entries':'{9CD4B2F4-923D-47f5-A062-E897DD1DAD50}',
 class RegData:
     """Creates the registry data. Each hive key is an object and the values are part of values array"""
     def __init__(self,hive):
-        self.hive=hive
+        self.hive=hive #Full path to hive.
         #Extract hive:
-        self.hives=tuple(hive.strip('[').strip(']').split('\\'))
-        self.name=[]
-        self.value=[]
-    def appendValue(self,name,value):
-        name = name.strip('"')
+        self.hives=tuple(hive.strip('[').strip(']').split('\\')) #Splits up the hive path as XML takes each steps down as a new section.
+        self.name=[] #Initializes name
+        self.value=[] #Initializes value
+    def appendValue(self,name,value): #Add  the name/value pair to the corresponding hive path.
+        name = name.strip('"') #.reg encapsulate name value in "", not needed in XML, strips it.
         #Determines data type from value
-        if value.startswith('"') and value.endswith('"'):
+        if value.startswith('"') and value.endswith('"'): #if value is encapsulated in quotes, it's a string, type sz.
             DataType='sz'
-            value=value.strip('"')
+            value=value.strip('"') #no longer need the encapsulation.
         elif value.startswith('hex') or value.endswith(",\\"):
             DataType='binary'
             value=value.strip('hex:').strip("\\").replace(",","").strip()
@@ -77,23 +77,15 @@ class RegData:
             value=value.strip('qword:')
             DataType='qword'
         else:
-            DataType='binary'
+            DataType='binary' #CatchAll, when in doubt, datatype is binary.
             value=value.replace(",","").strip()
         #Redefine name so it maches the formatting of the self.name elements
         name = (name,DataType,)
 
-        if name in self.name:
+        if name in self.name: #if the name/value pair is already in this hive, then update it to include new value
             i=self.name.index(name)
-##            print("name has ",len(self.name))
-##            print(self.name)
-##            print("value has ",len(self.value))
-##            print(self.value)
-##            print("index is ",i)
-##            print("Current hive is ",self.hives)
-##            print("Last item on name is ",self.name[-1])
-##            print("Last item on value is ",self.value[-1])
             self.value[i]=self.value[i]+value
-        else:
+        else: #Otherwise, add new name/value pair under this hive.
             self.name.append(name)
             self.value.append(value)
     def getNames(self):
